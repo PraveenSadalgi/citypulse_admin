@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   Card,
   CardContent,
@@ -19,6 +20,7 @@ const SignUp = () => {
   const [name, setName] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [role, setRole] = useState<"admin" | "superadmin">("admin");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -49,34 +51,56 @@ const SignUp = () => {
     setLoading(true);
 
     try {
-      // 1️⃣ Sign up user in Supabase Auth
-      const redirect = `${window.location.origin}/dashboard`;
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          // Use current origin to avoid port mismatches during local dev
-          emailRedirectTo: redirect, // ← Must be allowed in Supabase Auth settings
-        },
-      });
+      if (role === "superadmin") {
+        // Mock SuperAdmin signup: accept only provided demo credentials
+        if (
+          email === "praveensadalgi@gmail.com" &&
+          password === "pavi@1234"
+        ) {
+          try {
+            localStorage.setItem(
+              "mockAuth",
+              JSON.stringify({ role: "superadmin", email })
+            );
+          } catch {}
+          toast({ title: "Success", description: "SuperAdmin account initialized (demo)." });
+          navigate("/superadmin", { replace: true });
+          return;
+        } else {
+          throw new Error(
+            "For demo SuperAdmin, use the provided credentials: praveensadalgi@gmail.com / pavi@1234"
+          );
+        }
+      } else {
+        // 1️⃣ Sign up user in Supabase Auth
+        const redirect = `${window.location.origin}/dashboard`;
+        const { data: authData, error: authError } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            // Use current origin to avoid port mismatches during local dev
+            emailRedirectTo: redirect, // ← Must be allowed in Supabase Auth settings
+          },
+        });
 
-      if (authError) {
-        console.error("Supabase signUp error", { authError });
-        throw new Error(
-          `Auth signup failed: ${authError.message || "Unknown"} (status=${(authError as any).status || "?"}, code=${(authError as any).code || "?"}).\n` +
-          `Ensure Supabase Auth > URL Configuration includes Allowed Redirect URL: ${redirect}. If email confirmations are enabled, configure mailer or disable confirmations temporarily for local dev.`
-        );
+        if (authError) {
+          console.error("Supabase signUp error", { authError });
+          throw new Error(
+            `Auth signup failed: ${authError.message || "Unknown"} (status=${(authError as any).status || "?"}, code=${(authError as any).code || "?"}).\n` +
+            `Ensure Supabase Auth > URL Configuration includes Allowed Redirect URL: ${redirect}. If email confirmations are enabled, configure mailer or disable confirmations temporarily for local dev.`
+          );
+        }
+
+        // Rely on DB trigger to create initial profile row.
+
+        toast({
+          title: "Success",
+          description:
+            "Account created successfully! Please check your email to verify your account.",
+        });
+
+        navigate("/signin");
       }
-
-      // Rely on DB trigger to create initial profile row.
-
-      toast({
-        title: "Success",
-        description:
-          "Account created successfully! Please check your email to verify your account.",
-      });
-
-      navigate("/signin");
     } catch (error: any) {
       console.error("SignUp flow error", error);
       const message =
@@ -113,18 +137,23 @@ const SignUp = () => {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSignUp} className="space-y-4">
-              {/* <div className="space-y-2">
-                <Label htmlFor="name"> Name</Label>
-                <Input
-                  id="name"
-                  type="text"
-                  placeholder="Your full name"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  required
-                  className="transition-all duration-300 focus:shadow-glow"
-                />
-              </div> */}
+              <div className="space-y-2">
+                <Label>Sign up as</Label>
+                <RadioGroup
+                  value={role}
+                  onValueChange={(v) => setRole(v as any)}
+                  className="flex items-center gap-6"
+                >
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem id="signup-role-admin" value="admin" />
+                    <Label htmlFor="signup-role-admin">Admin</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem id="signup-role-superadmin" value="superadmin" />
+                    <Label htmlFor="signup-role-superadmin">SuperAdmin</Label>
+                  </div>
+                </RadioGroup>
+              </div>
 
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   Card,
   CardContent,
@@ -17,6 +18,7 @@ import { supabase } from "@/lib/supabaseClient";
 const SignIn = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [role, setRole] = useState<"admin" | "superadmin">("admin");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
@@ -31,6 +33,28 @@ const SignIn = () => {
     setLoading(true);
 
     try {
+      if (role === "superadmin") {
+        // Mock superadmin login
+        if (
+          email === "praveensadalgi@gmail.com" &&
+          password === "pavi@1234"
+        ) {
+          try {
+            localStorage.setItem(
+              "mockAuth",
+              JSON.stringify({ role: "superadmin", email })
+            );
+          } catch {}
+          navigate("/superadmin", { replace: true });
+          toast({ title: "Success", description: "Signed in as SuperAdmin (demo)." });
+          return;
+        } else {
+          throw new Error(
+            "Invalid SuperAdmin credentials. Use the provided demo credentials."
+          );
+        }
+      }
+
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -50,7 +74,7 @@ const SignIn = () => {
       if (!profile || profile.is_complete !== true) {
         navigate("/profile-complete");
       } else if (profile.role === "admin") {
-        navigate("/admin");
+        navigate("/dashboard");
       } else {
         navigate("/dashboard");
       }
@@ -124,6 +148,24 @@ const SignIn = () => {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSignIn} className="space-y-4">
+              <div className="space-y-2">
+                <Label>Sign in as</Label>
+                <RadioGroup
+                  value={role}
+                  onValueChange={(v) => setRole(v as any)}
+                  className="flex items-center gap-6"
+                >
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem id="role-admin" value="admin" />
+                    <Label htmlFor="role-admin">Admin</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem id="role-superadmin" value="superadmin" />
+                    <Label htmlFor="role-superadmin">SuperAdmin</Label>
+                  </div>
+                </RadioGroup>
+              </div>
+
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
                 <Input

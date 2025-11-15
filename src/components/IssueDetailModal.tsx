@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import StatusBadge from "./StatusBadge";
-import { MapPin, User, Calendar, Clock, CheckCircle2, AlertCircle, Settings } from "lucide-react";
+import { MapPin, User, Calendar, Clock, CheckCircle2, AlertCircle, Settings, X } from "lucide-react";
 
 interface Issue {
   id: number;
@@ -32,6 +32,15 @@ const IssueDetailModal = ({ issue, isOpen, onClose, isAdmin = false }: IssueDeta
   const [newStatus, setNewStatus] = useState<string>("");
   const [resolutionNotes, setResolutionNotes] = useState("");
 
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (isOpen) document.body.style.overflow = "hidden";
+    else document.body.style.overflow = "";
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [isOpen]);
+
   if (!issue) return null;
 
   const handleStatusUpdate = () => {
@@ -49,12 +58,17 @@ const IssueDetailModal = ({ issue, isOpen, onClose, isAdmin = false }: IssueDeta
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-gradient-card border-border/50">
-        <DialogHeader>
+      <DialogContent className="w-full h-screen md:h-auto md:max-w-4xl md:max-h-[90vh] overflow-y-auto bg-gradient-card border-border/50 rounded-none md:rounded-lg">
+        <DialogHeader className="relative">
           <DialogTitle className="text-2xl font-bold text-foreground flex items-start justify-between">
             <span>{issue.title}</span>
             <StatusBadge status={issue.status} />
           </DialogTitle>
+          <div className="absolute right-3 top-3 md:hidden">
+            <Button size="sm" variant="ghost" onClick={onClose}>
+              <X className="w-4 h-4" />
+            </Button>
+          </div>
         </DialogHeader>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
